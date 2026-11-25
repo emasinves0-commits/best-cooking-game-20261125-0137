@@ -3,6 +3,7 @@
 // then stops on the frame where the scene reads best. The search is a pure replay: the same seed
 // always lands on the same frame, and nothing is edited: it is the game's own render.
 import { COOK, SHIFT, STEP } from './config.js';
+import { dishesContaining } from './recipes.js';
 import { createBot } from './bot.js';
 import { SCREEN_PLAY, SCREEN_TITLE } from './render.js';
 
@@ -12,10 +13,14 @@ export const SCORERS = {
     let score = 0;
     const plate = state.plate;
     if (plate.placed.length === 2 && !plate.dish) score += 4;
+    // a cooked dish assembling reads as cooking; the quick drink does not
+    const assembling = dishesContaining(plate.ids);
+    if (plate.placed.length === 2 && assembling.length === 1 && assembling[0].id !== 'teh') score += 2;
     if (state.window.dish && state.window.age < COOK.serveLinger - 2) score += 4;
     if (state.board.item && !state.board.item.chopped && state.board.chops >= 1) score += 3;
     if (state.focus && state.focus.station === 'board') score += 1;
     if (state.orders.length >= 3) score += 1;
+    if (new Set(state.orders.map((order) => order.dish)).size >= 3) score += 1;
     if (state.burners.some((burner) => burner.state === 'cooking')) score += 1;
     if (state.combo >= 1) score += 1;
     if (state.time < 20) score -= 6;
