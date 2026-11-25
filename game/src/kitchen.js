@@ -194,11 +194,8 @@ export function paintBackdrop(ctx) {
     ctx.lineTo(STATIONS[key].x - 4, LAYOUT.floorY);
     ctx.stroke();
   }
-  nameplate(ctx, 'PANTRY', 'BAHAN', STATIONS.pantry.x, STATIONS.pantry.w, '#ffd27a');
-  nameplate(ctx, 'CHOP', 'TALENAN', STATIONS.board.x, STATIONS.board.w, '#9be7ff');
-  nameplate(ctx, 'STOVE', 'KOMPOR', STATIONS.stove.x, STATIONS.stove.w, '#ff9a5a');
-  nameplate(ctx, 'PLATING', 'SAJI', STATIONS.plating.x, STATIONS.plating.w, '#ff9ad0');
-  nameplate(ctx, 'SERVE', 'JENDELA', STATIONS.window.x, STATIONS.window.w, '#8dffb0');
+  // (station nameplates are drawn per-frame after the chef, in drawCounterLabels,
+  // so the cook never covers a label — the backdrop sits underneath the chef)
   // floor
   const floor = ctx.createLinearGradient(0, LAYOUT.floorY, 0, LAYOUT.barY);
   floor.addColorStop(0, '#2c1d2c');
@@ -370,7 +367,6 @@ function drawBoard(ctx, world, time, focused) {
 
 function drawPan(ctx, burner, x, y, time, focused) {
   const cooking = burner.state === 'cooking';
-  const active = burner.state !== 'idle';
   if (cooking || burner.state === 'done') {
     const flame = ctx.createRadialGradient(x, y + 24, 2, x, y + 24, 44);
     flame.addColorStop(0, 'rgba(255,210,80,0.9)');
@@ -422,7 +418,6 @@ function drawPan(ctx, burner, x, y, time, focused) {
   } else if (burner.state === 'burnt') {
     text(ctx, 'BURNT', x, y - 36, 13, '#ff6a5a');
   }
-  if (!active) text(ctx, 'free', x, y - 38, 11, 'rgba(255,255,255,0.35)', 'center', 'normal');
 }
 
 function drawStove(ctx, world, time, focus) {
@@ -571,14 +566,6 @@ function drawWindow(ctx, world, time, focused) {
     const dishScale = 0.9;
     drawDishOnPlate(ctx, dish, cx, wy - 2, dishScale);
     ctx.restore();
-    ctx.save();
-    ctx.globalAlpha = Math.max(0, Math.min(1, fade));
-    ctx.fillStyle = 'rgba(21,14,28,0.82)';
-    ctx.beginPath();
-    ctx.roundRect(cx - 52, LAYOUT.counterTop + 82, 104, 22, 11);
-    ctx.fill();
-    text(ctx, 'SERVED  ✓', cx, LAYOUT.counterTop + 98, 13, '#8dffb0');
-    ctx.restore();
   } else {
     ctx.strokeStyle = 'rgba(255,255,255,0.28)';
     ctx.setLineDash([5, 5]);
@@ -606,3 +593,29 @@ export function drawStations(ctx, world, time) {
   drawWindow(ctx, world, time, focus && focus.station === 'window');
 }
 
+
+/**
+ * Station nameplates + the SERVED pill, drawn every frame AFTER the chef, so the
+ * cook never covers a label (the backdrop paints once, underneath the chef).
+ */
+export function drawCounterLabels(ctx, world) {
+  nameplate(ctx, 'PANTRY', 'BAHAN', STATIONS.pantry.x, STATIONS.pantry.w, '#ffd27a');
+  nameplate(ctx, 'CHOP', 'TALENAN', STATIONS.board.x, STATIONS.board.w, '#9be7ff');
+  nameplate(ctx, 'STOVE', 'KOMPOR', STATIONS.stove.x, STATIONS.stove.w, '#ff9a5a');
+  nameplate(ctx, 'PLATING', 'SAJI', STATIONS.plating.x, STATIONS.plating.w, '#ff9ad0');
+  nameplate(ctx, 'SERVE', 'JENDELA', STATIONS.window.x, STATIONS.window.w, '#8dffb0');
+  const state = world.state;
+  if (state.window.dish && state.window.age < COOK.serveLinger) {
+    const age = state.window.age;
+    const fade = age > COOK.serveLinger - 1.5 ? (COOK.serveLinger - age) / 1.5 : 1;
+    const cx = STATIONS.window.x + STATIONS.window.w / 2;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, Math.min(1, fade));
+    ctx.fillStyle = 'rgba(21,14,28,0.82)';
+    ctx.beginPath();
+    ctx.roundRect(cx - 52, LAYOUT.counterTop + 82, 104, 22, 11);
+    ctx.fill();
+    text(ctx, 'SERVED  ✓', cx, LAYOUT.counterTop + 98, 13, '#8dffb0');
+    ctx.restore();
+  }
+}
