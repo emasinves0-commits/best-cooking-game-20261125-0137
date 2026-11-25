@@ -2,7 +2,7 @@
 // particles, HUD, then any full-screen overlay. The static room is painted once and blitted.
 import { FIELD, LAYOUT } from './config.js';
 import { drawChef, drawHeld } from './characters.js';
-import { drawStations, paintBackdrop } from './kitchen.js';
+import { drawCounterLabels, drawStations, paintBackdrop } from './kitchen.js';
 import { drawHudAbove, drawHudBelow } from './hud.js';
 import { drawPaused, drawSummary, drawTitle } from './screens.js';
 
@@ -54,6 +54,7 @@ export function createRenderer(canvas) {
     const busy = state.board.hit > 0;
     drawChef(ctx, state.chef, time, busy);
     drawHeld(ctx, state.chef, time);
+    drawCounterLabels(ctx, world);
     drawParticles(ctx, state);
     ctx.restore();
     ctx.fillStyle = '#120a1a';
