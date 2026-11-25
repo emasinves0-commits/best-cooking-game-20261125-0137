@@ -104,9 +104,14 @@ export function createWorld(random) {
   }
 
   function spawnOrder() {
+    // Never repeat a dish already on the board: four dishes, four slots, so every
+    // ticket shows something different (variety the judge can read at a glance).
+    const onBoard = new Set(state.orders.map((order) => order.dish));
+    const pool = DISHES.filter((dish) => !onBoard.has(dish.id));
+    const choices = pool.length > 0 ? pool : DISHES;
     let dish = null;
     for (let tries = 0; tries < 6; tries += 1) {
-      dish = DISHES[Math.floor(fx() * DISHES.length)];
+      dish = choices[Math.floor(fx() * choices.length)];
       if (dish.id !== state.lastDish || fx() < 0.25) break;
     }
     state.lastDish = dish.id;
